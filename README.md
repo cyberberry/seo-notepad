@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The SEO Notepad
 
-## Getting Started
+AI-powered web app for generating SEO blog titles, meta descriptions, and article outlines from a target keyword, tone, audience, and language.
 
-First, run the development server:
+Built with **Next.js 16**, **React 19**, **Tailwind CSS 4**, and the **OpenAI API**.
+
+## Features
+
+- **Bento-style UI** with motion (Framer Motion) and a sky/zinc design system
+- **Structured output**: titles, meta descriptions, and outline sections (heading + bullets)
+- **Copy on click** for any result row (toast confirmation via Sonner)
+- **Validated API**: Zod request validation and model JSON shape checks before data reaches the UI
+
+## Tech stack
+
+| Layer | Tools |
+|--------|--------|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS 4, Lucide icons, Framer Motion |
+| AI | OpenAI Chat Completions (`json_object` response format) |
+| Validation | Zod |
+| Logging | [Pino](https://getpino.io/) (+ [pino-pretty](https://github.com/pinojs/pino-pretty) in development) |
+| Toasts | Sonner |
+
+## Prerequisites
+
+- **Node.js** 20+
+- **npm** (or pnpm / yarn)
+- An [OpenAI API key](https://platform.openai.com/api-keys)
+
+## Getting started
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment variables
+
+Create `.env.local` in the project root:
+
+```env
+OPENAI_API_KEY=sk-your-key-here
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | Yes | OpenAI API key |
+| `OPENAI_MODEL` | Yes | Model id (e.g. `gpt-4.1-mini`, `gpt-4o-mini`) |
+| `LOG_LEVEL` | No | `debug` \| `info` \| `warn` \| `error` (default: `debug` in dev, `info` in production) |
+
+Do not commit `.env.local` or any file containing secrets.
+
+### 3. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Production build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+### Lint
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  page.tsx              # Server Component — layout shell + backgrounds
+  layout.tsx            # Root layout, metadata, Toaster
+  api/generate/route.ts # POST handler for generation
+  globals.css
+components/
+  HomePageClient.tsx    # Client island — state, hero, form, results
+  KeywordForm.tsx       # Input form + fetch to API
+  ResultsPanel.tsx      # Tabs, animated lists, copy-on-click
+  ui/sonner.tsx
+lib/
+  logger.ts             # Server Pino logger (`createLogger`, server-only)
+  client-logger.ts      # Browser Pino logger for client components
+  openai.ts             # OpenAI client + generation (server-only)
+  prompts.ts            # System and user prompt builders
+  seo-schemas.ts        # Zod schemas + JSON parsing helpers
+types/
+  index.ts              # Shared TypeScript types
+```
 
-## Deploy on Vercel
+## API
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `POST /api/generate`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Generates SEO content for the given inputs.
+
+**Request** (`Content-Type: application/json`):
+
+```json
+{
+  "keyword": "content marketing",
+  "tone": "professional",
+  "audience": "marketers",
+  "language": "us-english",
+  "titleCount": 5,
+  "metaCount": 5,
+  "sectionCount": 5
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `keyword` | Yes | 1–500 characters |
+| `tone` | No | Max 120 characters |
+| `audience` | No | Max 120 characters |
+| `language` | No | Defaults to `English (US)` in the handler |
+| `titleCount` | No | 1–15, default `5` |
+| `metaCount` | No | 1–15, default `5` |
+| `sectionCount` | No | 1–20, default `5` |
+
+Extra keys are rejected (`.strict()` schema).
+
+**Success** `200`:
+
+```json
+{
+  "content": {
+    "titles": ["..."],
+    "metaDescriptions": ["..."],
+    "outlineSections": [
+      { "heading": "...", "bullets": ["...", "..."] }
+    ]
+  }
+}
+```
+
+## License
+
+Private project — all rights reserved unless stated otherwise by the owner.
